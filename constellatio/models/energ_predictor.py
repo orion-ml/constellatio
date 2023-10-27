@@ -9,21 +9,23 @@ import torch.nn as nn
 from transformers import GPT2Config, GPT2Model
 from ml_collections import ConfigDict
 
-cfg = ConfigDict()
-cfg.gptcfg = gpt2cfg = ConfigDict()
-gpt2cfg.n_embd = 32
-gpt2cfg.n_layer = 4
-gpt2cfg.n_head = 4
-gpt2cfg.n_positions = 40
-gpt2cfg = GPT2Config(
-    **{k: v for k, v in cfg.gptcfg.items() if k in GPT2Config().to_dict()}
-)
-model = GPT2Model(gpt2cfg)
 
 
 class NRGPredictor(pl.LightningModule):
-    def __init__(self, cfg, tokenizer):
+    def __init__(self, tokenizer):
         super().__init__()
+
+        cfg = ConfigDict()
+        cfg.gptcfg = gpt2cfg = ConfigDict()
+        gpt2cfg.n_embd = 32
+        gpt2cfg.n_layer = 4
+        gpt2cfg.n_head = 4
+        gpt2cfg.n_positions = 40
+        gpt2cfg = GPT2Config(
+            **{k: v for k, v in cfg.gptcfg.items() if k in GPT2Config().to_dict()}
+        )
+        model = GPT2Model(gpt2cfg)
+        
         self.cfg = cfg
         gpt2cfg.vocab_size = tokenizer.vocab_size
         self.save_hyperparameters()

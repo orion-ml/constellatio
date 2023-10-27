@@ -10,8 +10,6 @@ from datasets import Dataset, DatasetDict
 from transformers import PreTrainedTokenizer
 import selfies as sf
 
-from src.datasets._pubchemqc_cids import DB_CIDS
-
 TOTAL_AMOUNT_CIDS = 17309040
 
 def get_cids(limit, offset):

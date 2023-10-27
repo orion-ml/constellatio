@@ -6,9 +6,9 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "constellation"
+name = "constellatio"
 version = "0.1.0"
-description = "The constellation package for chemistry models"
+description = "The constellatio package for chemistry models"
 readme = "README.md"
 authors = [{name = "Luis Mantilla", email = "contact@orion.ml"}]
 license = {text = "Apache-2.0"}
