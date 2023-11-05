@@ -1,7 +1,5 @@
-import os
+import importlib.resources as pkg_resources
 from transformers import AutoTokenizer
 
-relative_path = './mofid_llm_tokenizer/'
-path = os.path.join(os.path.dirname(__file__), relative_path)
-
-marko_tokenizer = AutoTokenizer.from_pretrained(path)
+with pkg_resources.path('constellatio.models', 'mofid_llm_tokenizer') as tokenizer_dir:
+    marko_tokenizer = AutoTokenizer.from_pretrained(tokenizer_dir)
