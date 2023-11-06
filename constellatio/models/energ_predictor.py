@@ -21,6 +21,9 @@ class NRGPredictor(pl.LightningModule):
         gpt2cfg.n_layer = 4
         gpt2cfg.n_head = 4
         gpt2cfg.n_positions = 40
+        cfg.lr = 1e-3
+        cfg.warmup_steps = 100
+        
         gpt2cfg = GPT2Config(
             **{k: v for k, v in cfg.gptcfg.items() if k in GPT2Config().to_dict()}
         )
@@ -37,9 +40,11 @@ class NRGPredictor(pl.LightningModule):
         self.loss_fn = nn.MSELoss()
 
     def forward(self, **batch):
-        emb = self.model(**batch)[0][:, 0, :]
+        inputs = {k: v for k, v in batch.items() if k != 'labels'}
+        emb = self.model(**inputs)[0][:, 0, :]
         nrg = self.emb2nrg(emb)
         return nrg
+
 
     def training_step(self, batch, batch_idx):
         outputs = self(**batch)
@@ -48,19 +53,24 @@ class NRGPredictor(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, batch_idx):
-        self._evaluate(batch, stage="val")
+        return self._evaluate(batch, stage="val")
 
     def test_step(self, batch, batch_idx):
-        self._evaluate(batch, stage="test")
+        # Call the evaluate function and directly return its result
+        return self._evaluate(batch, stage="test")
 
     def _evaluate(self, batch, stage=None):
         outputs = self(**batch)
         loss = self.loss_fn(outputs, batch["labels"])
         if stage:
-            self.log(f"{stage}_loss", loss, on_step=True, sync_dist=True, prog_bar=True)
+            # Log the loss at the end of the epoch, not at each step.
+            # Also, ensure the loss is logged only on validation/test stages
+            self.log(f"{stage}_loss", loss, on_epoch=True, prog_bar=True)
+        # Return the loss as part of a dictionary with the key matching your logging
+        return {f"{stage}_loss": loss}
 
     def configure_optimizers(self):
-        optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.cfg.lr)
+        optimizer = torch.optim.Adam(self.model.parameters(), lr=self.cfg.lr)
         scheduler = get_cosine_schedule_with_warmup(
             optimizer, self.cfg.warmup_steps, self.cfg.warmup_steps * 5
         )
