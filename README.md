@@ -22,10 +22,9 @@ Here, you can add a model to be trained by the orion network. To do so, follow t
 3. Create a `my_model.py` file under `models/my_folder`. Here, you can define your `nn.Module` (or any subclass of it, such as `LightningModule`). 
 
 4. Add the model defined in `my_model.py` to `models/my_folder/__init__.py`
-
-```python
-from .my_model import MyModel
-```
+    ```python
+    from .my_model import MyModel
+    ```
 
 ## Add a new dataset
 
