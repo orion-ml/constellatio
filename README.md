@@ -7,7 +7,7 @@ Constellatio is developed by Alán Aspuru-Guzik's group at the University of Tor
 
 Here, you can add a model to be trained by the orion network. To do so, follow these steps:
 
-1. Under `models/`, create a new folder `my_folder`. Here, you can add all the models you would like to deploy. If there is already a folder with the name of your model, skip to step 3.
+1. Under `models/`, create a new folder `my_folder`. Here, you can add all the models you would like to deploy. If you already have a folder, skip to step 3.
 
 2. Create an `__init__.py` file for your module. Then, add it to `models/info_models.py` with
     ```python
