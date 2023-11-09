@@ -12,6 +12,7 @@ import selfies as sf
 
 TOTAL_AMOUNT_CIDS = 17309040
 
+
 def get_cids(limit, offset):
     """
     Generator function to retrieve cids from the API.
@@ -22,7 +23,7 @@ def get_cids(limit, offset):
             "select": "cid",
             "order": "cid.asc",
             "limit": limit,
-            "offset": offset
+            "offset": offset,
         }
 
         response = requests.get(base_url, params=payload)
@@ -30,7 +31,7 @@ def get_cids(limit, offset):
         cids = response.json()
 
         for entry in cids:
-            yield entry['cid'] 
+            yield entry["cid"]
 
     except requests.RequestException as e:
         print(f"An network error occurred: {e}")
@@ -105,9 +106,12 @@ def get_partition_bounds(client_id, n_clients):
     """
     partition_size, remainder = divmod(TOTAL_AMOUNT_CIDS, n_clients)
     start_index = partition_size * client_id
-    end_index = start_index + partition_size + (remainder if client_id == n_clients - 1 else 0)
+    end_index = (
+        start_index + partition_size + (remainder if client_id == n_clients - 1 else 0)
+    )
 
     return start_index, end_index
+
 
 def partition_cids(client_id, n_clients, max_data=None, output_file=None):
     """
@@ -115,7 +119,7 @@ def partition_cids(client_id, n_clients, max_data=None, output_file=None):
     Optionally limits the number of cids fetched by the max_data parameter.
     """
     start_index, end_index = get_partition_bounds(client_id, n_clients)
-    
+
     required_cids = end_index - start_index
     if max_data is not None:
         required_cids = min(required_cids, max_data)
@@ -125,13 +129,17 @@ def partition_cids(client_id, n_clients, max_data=None, output_file=None):
     def cid_generator():
         nonlocal current_cid_count, required_cids, start_index
         while current_cid_count < required_cids:
-            for cid in get_cids(limit=min(100, required_cids - current_cid_count), offset=start_index + current_cid_count):
+            for cid in get_cids(
+                limit=min(100, required_cids - current_cid_count),
+                offset=start_index + current_cid_count,
+            ):
                 yield cid
                 current_cid_count += 1
                 if max_data is not None and current_cid_count >= max_data:
-                    return  
-                
+                    return
+
     return cid_generator()
+
 
 def random_cids(n_cids):
     """
@@ -147,12 +155,14 @@ def random_cids(n_cids):
     for index in random_indices:
         cid_data = list(get_cids(limit=1, offset=index))
         if cid_data:
-            random_cids_result.append(cid_data[0]) 
+            random_cids_result.append(cid_data[0])
 
     return random_cids_result
 
 
-def generate_dataset_partition(client_id, n_clients, max_data=None , raw_data_path=None, selfies=True):
+def generate_dataset_partition(
+    client_id, n_clients, max_data=None, raw_data_path=None, selfies=True
+):
     """
     Generates a dataset partition for a given client_id and n_clients and returns the path to the dataset.
     """
