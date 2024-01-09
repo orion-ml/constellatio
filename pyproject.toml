@@ -6,7 +6,7 @@ requires = [
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-data]
-constellatio = ["*/*.json", "*/*/*.json"]
+constellatio = ["tokenizers/mofid_llm_tokenizer/*.json"]
 
 [project]
 name = "constellatio"
