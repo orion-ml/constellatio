@@ -67,15 +67,28 @@ def fetch_molecule_data(cids):
 
     return molecule_data_list
 
-
-def generate_dataset_from_ids(ids, output_file=None, selfies=True, test_size=0.2):
+def generate_dataset_from_ids(ids, data_path=None, output_file=None, selfies=True, test_size=0.2):
     """
     Generates a dataset from a generator of cids.
+    
+    :param ids: List of cids to fetch data for.
+    :param data_path: The base directory to use for writing data files.
+    :param output_file: Optional path to the output CSV file.
+    :param selfies: Boolean indicating whether to use SELFIES representation.
+    :param test_size: Fraction of the dataset to be used as the test set.
     """
-    temp_dir = gettempdir()  # Gets the system temporary directory
-    os.makedirs(os.path.join(temp_dir, ".orion_temp"), exist_ok=True)
-    output_file = output_file or os.path.join(temp_dir, ".orion_temp", "pubchemqc_dataset.csv")
+    
+    # Create a temporary directory within the provided data_path
+    if data_path is None:
+        data_path = gettempdir()
 
+    temp_dir = os.path.join(data_path, "orion_temp")
+    os.makedirs(temp_dir, exist_ok=True)
+    
+    # Determine the path for the output CSV file
+    output_file = output_file or os.path.join(temp_dir, "pubchemqc_dataset.csv")
+
+    # Write data to the output CSV file
     with open(output_file, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow([f'{"selfies" if selfies else "smiles"}', "energy"])
@@ -95,11 +108,14 @@ def generate_dataset_from_ids(ids, output_file=None, selfies=True, test_size=0.2
 
                     except KeyError:
                         continue
-
-    dataset_split_path = os.path.join(".orion_temp", "pubchemqc_dataset_split")
+    # Define the path for the dataset split
+    dataset_split_path = os.path.join(temp_dir, "pubchemqc_dataset_split")
+    
+    # Load the dataset, split it, and save to disk
     data = Dataset.from_csv(output_file)
     data.train_test_split(test_size=test_size).save_to_disk(dataset_split_path)
 
+    # Return the path to the split dataset
     return dataset_split_path
 
 
