@@ -2,6 +2,7 @@ import os
 import csv
 
 import requests
+from tempfile import gettempdir
 
 import numpy as np
 import torch
@@ -71,8 +72,10 @@ def generate_dataset_from_ids(ids, output_file=None, selfies=True, test_size=0.2
     """
     Generates a dataset from a generator of cids.
     """
-    os.makedirs(".temp", exist_ok=True)
-    output_file = output_file or os.path.join(".temp", "pubchemqc_dataset.csv")
+    temp_dir = gettempdir()  # Gets the system temporary directory
+    os.makedirs(os.path.join(temp_dir, ".orion_temp"), exist_ok=True)
+    output_file = output_file or os.path.join(temp_dir, ".orion_temp", "pubchemqc_dataset.csv")
+
     with open(output_file, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow([f'{"selfies" if selfies else "smiles"}', "energy"])
@@ -93,7 +96,7 @@ def generate_dataset_from_ids(ids, output_file=None, selfies=True, test_size=0.2
                     except KeyError:
                         continue
 
-    dataset_split_path = os.path.join(".temp", "pubchemqc_dataset_split")
+    dataset_split_path = os.path.join(".orion_temp", "pubchemqc_dataset_split")
     data = Dataset.from_csv(output_file)
     data.train_test_split(test_size=test_size).save_to_disk(dataset_split_path)
 
