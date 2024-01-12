@@ -67,7 +67,7 @@ def fetch_molecule_data(cids):
 
     return molecule_data_list
 
-def generate_dataset_from_ids(ids, data_path=None, output_file=None, selfies=True, test_size=0.2):
+def generate_dataset_from_ids(ids, data_path=None, output_file:str =None, selfies=True, test_size=0.2):
     """
     Generates a dataset from a generator of cids.
     
@@ -180,21 +180,21 @@ def random_cids(n_cids):
 
 
 def generate_dataset_partition(
-    client_id, n_clients, max_data=None, raw_data_path=None, selfies=True
+    client_id, n_clients, max_data=None, output_path=None, selfies=True, data_path=None
 ):
     """
     Generates a dataset partition for a given client_id and n_clients and returns the path to the dataset.
     """
     ids = partition_cids(client_id, n_clients, max_data)
-    return generate_dataset_from_ids(ids, raw_data_path, selfies)
+    return generate_dataset_from_ids(ids, output_file=output_path, selfies=selfies, data_path=data_path)
 
 
-def generate_dataset(n_data, raw_data_path=None, selfies=True):
+def generate_dataset(n_data, output_path=None, selfies=True, data_path=None):
     """
     Generates a dataset of size n_data and returns the path to the dataset.
     """
     ids = random_cids(n_data)
-    return generate_dataset_from_ids(ids, raw_data_path, selfies)
+    return generate_dataset_from_ids(ids, output_file=output_path, selfies=selfies, data_path=data_path)
 
 
 def load_data(
