@@ -11,6 +11,8 @@ from datasets import Dataset, DatasetDict
 from transformers import PreTrainedTokenizer
 import selfies as sf
 
+import cProfile
+
 TOTAL_AMOUNT_CIDS = 17309040
 
 
@@ -42,30 +44,23 @@ def get_cids(limit, offset):
         print(f"An error occurred: {e}")
 
 
-def fetch_molecule_data(cids):
-    """
-    Fetches data from the PostgREST API.
-
-    Parameters:
-        cids (list of int): A list of cids to fetch data for.
-    """
+def fetch_molecule_data(cids, chunk_size=200):
     base_url = "https://pcqc.matter.toronto.edu/pm6opt_chon300nosalt"
     molecule_data_list = []
 
-    for cid in cids:
-        params = {"select": "*", "and": f"(cid.eq.{cid})"}
-        response = requests.get(base_url, params=params)
+    for i in range(0, len(cids), chunk_size):
+        chunk_cids = cids[i:i+chunk_size]
+        cid_list = f"({','.join(map(str, chunk_cids))})"
+        params = {"select": "*", "cid": f"in.{cid_list}"}
 
+        response = requests.get(base_url, params=params)
         if response.status_code == 200:
-            molecule_data = response.json()
-            if molecule_data:  # Check if data is not empty
-                molecule_data_list.append(
-                    molecule_data[0]
-                )  # Assuming there's only one record per cid
+            molecule_data_list.extend(response.json())
         else:
-            print(f"Failed to fetch data for cid {cid}: {response.status_code}")
+            print(f"Failed to fetch data for cids {chunk_cids}: {response.status_code}")
 
     return molecule_data_list
+
 
 def generate_dataset_from_ids(ids, data_path=None, output_file:str =None, selfies=True, test_size=0.2):
     """
@@ -172,7 +167,7 @@ def random_cids(n_cids):
 
     random_cids_result = []
     for index in random_indices:
-        cid_data = list(get_cids(limit=1, offset=index))
+        cid_data = list(get_cids(limit=100, offset=index))
         if cid_data:
             random_cids_result.append(cid_data[0])
 
@@ -270,6 +265,8 @@ def chunked(iterable, n):
 
 if __name__ == "__main__":
     import argparse
+    pr = cProfile.Profile()
+    pr.enable()
 
     parser = argparse.ArgumentParser(description="Generate dataset for a client.")
 
@@ -316,3 +313,6 @@ if __name__ == "__main__":
     else:
         print(f"Generating data with size {n_data}...")
         generate_dataset(n_data)
+
+    pr.disable()
+    pr.dump_stats("profile_stats.prof")
