@@ -12,8 +12,7 @@ from transformers import PreTrainedTokenizer
 import selfies as sf
 import random
 
-
-import cProfile
+from tqdm import tqdm
 
 TOTAL_AMOUNT_CIDS = 17309040
 
@@ -78,27 +77,25 @@ def generate_dataset_from_ids(ids, data_path=None, output_file=None, selfies=Tru
     :param batch_size: Number of cids to process in each batch.
     """
 
-    # Create a temporary directory within the provided data_path
     if data_path is None:
         data_path = gettempdir()
 
     temp_dir = os.path.join(data_path, "orion_temp")
     os.makedirs(temp_dir, exist_ok=True)
 
-    # Determine the path for the output CSV file
     output_file = output_file or os.path.join(temp_dir, "pubchemqc_dataset.csv")
-    print(f"Writing data to {output_file}...")
 
-    # Write data to the output CSV file
+    ids_list = list(ids)
+    total_ids = len(ids_list)
+
     with open(output_file, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow([f'{"selfies" if selfies else "smiles"}', "energy"])
 
-        ids = list(ids)
-        for i in range(0, len(ids), batch_size):
-            batch_ids = ids[i:i + batch_size]
-            molecule_data = fetch_molecule_data(batch_ids)
+        for i in tqdm(range(0, total_ids, batch_size), desc="Processing Batches"):
+            batch_ids = ids_list[i:i + batch_size]
             
+            molecule_data = fetch_molecule_data(batch_ids)
             for data in molecule_data:
                 if data:
                     try:
@@ -117,7 +114,6 @@ def generate_dataset_from_ids(ids, data_path=None, output_file=None, selfies=Tru
     data.train_test_split(test_size=test_size).save_to_disk(dataset_split_path)
 
     return dataset_split_path
-
 
 def get_partition_bounds(client_id, n_clients):
     """
@@ -278,8 +274,6 @@ def chunked(iterable, n):
 
 if __name__ == "__main__":
     import argparse
-    pr = cProfile.Profile()
-    pr.enable()
 
     parser = argparse.ArgumentParser(description="Generate dataset for a client.")
 
@@ -326,6 +320,3 @@ if __name__ == "__main__":
     else:
         print(f"Generating data with size {n_data}...")
         generate_dataset(n_data)
-
-    pr.disable()
-    pr.dump_stats("profile_stats.prof")

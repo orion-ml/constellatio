@@ -1,3 +1,7 @@
+constellatio/notebooks/*.ipynb
+datasets/profile_stats.prof
+datasets/profiling_graph.png
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
