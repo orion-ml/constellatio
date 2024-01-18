@@ -10,17 +10,21 @@ from torch.utils.data import DataLoader, random_split
 from datasets import Dataset, DatasetDict
 from transformers import PreTrainedTokenizer
 import selfies as sf
+import random
+
 
 import cProfile
 
 TOTAL_AMOUNT_CIDS = 17309040
 
 
-def get_cids(limit, offset):
+def get_cids(limit, offset=None):
     """
     Generator function to retrieve cids from the API.
     """
     try:
+        if offset is None:
+            offset = random.randint(0, TOTAL_AMOUNT_CIDS - limit)
         base_url = "https://pcqc.matter.toronto.edu/pm6opt_chon300nosalt"
         payload = {
             "select": "cid",
@@ -62,55 +66,56 @@ def fetch_molecule_data(cids, chunk_size=200):
     return molecule_data_list
 
 
-def generate_dataset_from_ids(ids, data_path=None, output_file:str =None, selfies=True, test_size=0.2):
+def generate_dataset_from_ids(ids, data_path=None, output_file=None, selfies=True, test_size=0.2, batch_size=500):
     """
-    Generates a dataset from a generator of cids.
-    
+    Generates a dataset from a list of cids.
+
     :param ids: List of cids to fetch data for.
     :param data_path: The base directory to use for writing data files.
     :param output_file: Optional path to the output CSV file.
     :param selfies: Boolean indicating whether to use SELFIES representation.
     :param test_size: Fraction of the dataset to be used as the test set.
+    :param batch_size: Number of cids to process in each batch.
     """
-    
+
     # Create a temporary directory within the provided data_path
     if data_path is None:
         data_path = gettempdir()
 
     temp_dir = os.path.join(data_path, "orion_temp")
     os.makedirs(temp_dir, exist_ok=True)
-    
+
     # Determine the path for the output CSV file
     output_file = output_file or os.path.join(temp_dir, "pubchemqc_dataset.csv")
+    print(f"Writing data to {output_file}...")
 
     # Write data to the output CSV file
     with open(output_file, mode="w", newline="", encoding="utf-8") as file:
         writer = csv.writer(file)
         writer.writerow([f'{"selfies" if selfies else "smiles"}', "energy"])
 
-        for cid in ids:
-            molecule_data = fetch_molecule_data([cid])
+        ids = list(ids)
+        for i in range(0, len(ids), batch_size):
+            batch_ids = ids[i:i + batch_size]
+            molecule_data = fetch_molecule_data(batch_ids)
+            
             for data in molecule_data:
                 if data:
                     try:
                         molecule_rep = data["data"]["pubchem"]["Isomeric SMILES"]
-                        energy = data["data"]["pubchem"]["PM6"]["properties"]["energy"][
-                            "total"
-                        ]
+                        energy = data["data"]["pubchem"]["PM6"]["properties"]["energy"]["total"]
                         if selfies:
                             molecule_rep = sf.encoder(molecule_rep)
                         writer.writerow([molecule_rep, energy])
 
                     except KeyError:
                         continue
-    # Define the path for the dataset split
+
+    # Split the dataset and save to disk
     dataset_split_path = os.path.join(temp_dir, "pubchemqc_dataset_split")
-    
-    # Load the dataset, split it, and save to disk
     data = Dataset.from_csv(output_file)
     data.train_test_split(test_size=test_size).save_to_disk(dataset_split_path)
 
-    # Return the path to the split dataset
     return dataset_split_path
 
 
@@ -144,7 +149,7 @@ def partition_cids(client_id, n_clients, max_data=None, output_file=None):
         nonlocal current_cid_count, required_cids, start_index
         while current_cid_count < required_cids:
             for cid in get_cids(
-                limit=min(100, required_cids - current_cid_count),
+                limit=min(200, required_cids - current_cid_count),
                 offset=start_index + current_cid_count,
             ):
                 yield cid
@@ -155,23 +160,31 @@ def partition_cids(client_id, n_clients, max_data=None, output_file=None):
     return cid_generator()
 
 
-def random_cids(n_cids):
-    """
-    Returns n_cids random CIDs.
-    """
-    if n_cids > TOTAL_AMOUNT_CIDS:
-        raise ValueError("n_cids cannot be greater than TOTAL_AMOUNT_CIDS")
+# def random_cids(n_cids):
+#     """
+#     Returns n_cids random CIDs.
+#     """
+#     if n_cids > TOTAL_AMOUNT_CIDS:
+#         raise ValueError("n_cids cannot be greater than TOTAL_AMOUNT_CIDS")
 
-    random_indices = np.random.choice(TOTAL_AMOUNT_CIDS, n_cids, replace=False)
-    random_indices.sort()
+#     random_indices = np.random.choice(TOTAL_AMOUNT_CIDS, n_cids, replace=False)
+#     random_indices.sort()
 
-    random_cids_result = []
-    for index in random_indices:
-        cid_data = list(get_cids(limit=100, offset=index))
-        if cid_data:
-            random_cids_result.append(cid_data[0])
+#     random_cids_result = []
+#     for index in random_indices:
+#         cid_data = list(get_cids(limit=1, offset=index))
+#         if cid_data:
+#             random_cids_result.append(cid_data[0])
 
-    return random_cids_result
+#     return random_cids_result
+
+# def random_cids(n_cids):
+#     randoms_cids_result = []
+#     while len(randoms_cids_result) < n_cids:
+#         cid_data = list(get_cids(limit=200))
+#         if cid_data:
+#             randoms_cids_result.append(cid_data)
+#     return randoms_cids_result
 
 
 def generate_dataset_partition(
@@ -188,7 +201,7 @@ def generate_dataset(n_data, output_path=None, selfies=True, data_path=None):
     """
     Generates a dataset of size n_data and returns the path to the dataset.
     """
-    ids = random_cids(n_data)
+    ids = get_cids(n_data)
     return generate_dataset_from_ids(ids, output_file=output_path, selfies=selfies, data_path=data_path)
 
 
