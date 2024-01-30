@@ -6,7 +6,7 @@ import torch.nn as nn
 from ml_collections import ConfigDict
 
 
-class NRGPredictor(LightningModule):
+class GPT2Energy(LightningModule):
     def __init__(self, tokenizer):
         super().__init__()
         self.save_hyperparameters()

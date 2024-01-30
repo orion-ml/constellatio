@@ -196,6 +196,11 @@ def generate_dataset_partition(
 def generate_dataset(n_data, output_path=None, selfies=True, data_path=None):
     """
     Generates a dataset of size n_data and returns the path to the dataset.
+
+    :param n_data: The number of data points to generate.
+    :param output_path: Optional path to the output CSV file.
+    :param selfies: Boolean indicating whether to use SELFIES representation.
+    :param data_path: The base directory to use for writing data files.
     """
     ids = get_cids(n_data)
     return generate_dataset_from_ids(ids, output_file=output_path, selfies=selfies, data_path=data_path)

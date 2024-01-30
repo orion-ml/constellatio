@@ -1,1 +1,1 @@
-from .energy import NRGPredictor
+from .energy import GPT2Energy
